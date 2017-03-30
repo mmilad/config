@@ -13,10 +13,10 @@ class J {
                     var ATTACHMENTS=[],
                         DATABASE = document.createElement('select'),
                         obj:any = {};
-                    obj.db = DATABASE.dataset;
-                    obj.outputBind = function(config) {
-                        if(!ATTACHMENTS[config.bind]) {ATTACHMENTS[config.bind] = [];}
-                        ATTACHMENTS[config.bind].push(config.to);
+                    obj.data = DATABASE.dataset;
+                    obj.bind = function(config) {
+                        if(!ATTACHMENTS[config.data]) {ATTACHMENTS[config.data] = [];}
+                        ATTACHMENTS[config.data].push(config);
                     };
 
                     function conCamel(input) { 
@@ -26,20 +26,33 @@ class J {
                     }
                     function init(db) {
                         var docObserver = new MutationObserver(function(mutations) {       
-                            var key;
+                            var key,itemFound;
                             mutations.forEach(function(mutation){
-                                console.log(mutation)
                                 key = conCamel(mutation.attributeName.substring(5));
                                 if(ATTACHMENTS[key]) {
                                     ATTACHMENTS[key].forEach(function(config){
-                                            if(config.element) {
+                                        if(config.element) {
+                                            if(config.attribute) {
+                                                config.element.setAttribute(config.attribute, db[key]);
+                                            }
+                                            if(config.property){
+                                                config.element[config.property] = db[key];
+                                            }
+                                        }
+
+                                            // debugger;
+                                        if(config.find) {
+                                            itemFound = document.querySelectorAll(config.find);
+                                            itemFound.forEach(function(itemInstance){
                                                 if(config.attribute) {
-                                                    config.element.setAttribute(config.attribute, db[key]);
+                                                    itemInstance.setAttribute(config.attribute, db[key]);
                                                 }
                                                 if(config.property){
-                                                    config.element[config.property] = db[key];
+                                                    itemInstance[config.property] = db[key];
                                                 }
-                                            }
+                                            });
+                                        }
+                                        !config.callback ? false : config.callback(db[key])
                                     });
                                 }
                             });
@@ -54,18 +67,11 @@ class J {
 
             function init(config, db) {
                 var literator
-                if(!config.tag) {config.tag = 'div'}
+                config.tag = !config.tag ? 'div' : config.tag
                 config.element = document.createElement(config.tag)
-
-                if (config.value) {
-                    config.element.value = config.value;
-                }
-                if (config.html) {
-                    config.element.innerHTML = config.html;
-                }
-                if (config.class) {
-                    config.element.class = config.class
-                }
+                !config.value ? false : config.element.value = config.value
+                !config.html ? false : config.element.innerHTML = config.html
+                !config.class ? false : config.element.className = config.class
                 if(config.attributes) {
                     literator=""
                     for(literator in config.attributes) {
@@ -89,9 +95,9 @@ class J {
                     })
                 }
                 if(config.bind) {
-                    config.bind.to.element = config.element
-                    db.outputBind(config.bind);
-                    if(db.db[config.bind.bind]) {db.db[config.bind.bind] = db.db[config.bind.bind] }
+                    config.bind.element = config.element
+                    db.bind(config.bind)
+                    if(db.data[config.bind.data]) {db.data[config.bind.data] = db.data[config.bind.data] }
                 }
                 return config.element
             }
